@@ -529,4 +529,5 @@ if __name__ == '__main__':
     print("📁 Pasta de uploads: ./uploads")
     print("=" * 50)
     app.run(debug=True, host='0.0.0.0', port=5000)
+
     
