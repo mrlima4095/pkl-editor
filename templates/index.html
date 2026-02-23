@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explorador de Arquivos PKL</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-info {
+            font-size: 14px;
+            color: #ecf0f1;
+        }
+
+        .upload-area {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .upload-area input[type="file"] {
+            display: none;
+        }
+
+        .upload-label {
+            background: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .upload-label:hover {
+            background: #2980b9;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #27ae60;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #e67e22;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .data-viewer {
+            background: #f8f9fa;
+            border-radius: 5px;
+            padding: 15px;
+            overflow: auto;
+            max-height: 600px;
+        }
+
+        .json-tree {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .json-node {
+            margin-left: 20px;
+            border-left: 1px dashed #dee2e6;
+            padding-left: 10px;
+        }
+
+        .json-key {
+            color: #e74c3c;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .json-value {
+            color: #27ae60;
+        }
+
+        .json-value.string {
+            color: #e67e22;
+        }
+
+        .json-value.number {
+            color: #3498db;
+        }
+
+        .json-value.boolean {
+            color: #9b59b6;
+        }
+
+        .json-value.null {
+            color: #95a5a6;
+        }
+
+        .node-controls {
+            display: inline-block;
+            margin-left: 10px;
+            opacity: 0.3;
+            transition: opacity 0.3s;
+        }
+
+        .json-node:hover .node-controls {
+            opacity: 1;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 2px 5px;
+            margin: 0 2px;
+            border-radius: 3px;
+        }
+
+        .control-btn.add {
+            color: #27ae60;
+        }
+
+        .control-btn.edit {
+            color: #f39c12;
+        }
+
+        .control-btn.delete {
+            color: #e74c3c;
+        }
+
+        .control-btn.move {
+            color: #3498db;
+        }
+
+        .control-btn:hover {
+            background: #dee2e6;
+        }
+
+        .sidebar {
+            background: #f8f9fa;
+            border-radius: 5px;
+            padding: 15px;
+        }
+
+        .sidebar h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .action-form {
+            margin-bottom: 20px;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+        }
+
+        .form-group {
+            margin-bottom: 10px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #dee2e6;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .path-display {
+            font-size: 12px;
+            color: #3498db;
+            margin-bottom: 10px;
+            word-break: break-all;
+        }
+
+        .message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            display: none;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        footer {
+            background: #2c3e50;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Explorador de Arquivos PKL</h1>
+            <div class="file-info" id="fileInfo">
+                Nenhum arquivo carregado
+            </div>
+        </header>
+
+        <div class="upload-area">
+            <input type="file" id="fileInput" accept=".pkl">
+            <label for="fileInput" class="upload-label">Selecionar Arquivo PKL</label>
+            <button class="btn btn-primary" onclick="uploadFile()" id="uploadBtn">Carregar</button>
+            <button class="btn btn-secondary" onclick="saveFile()" id="saveBtn" disabled>Salvar</button>
+            <button class="btn btn-warning" onclick="downloadFile()" id="downloadBtn" disabled>Download</button>
+        </div>
+
+        <div id="message" class="message"></div>
+
+        <div class="main-content">
+            <div class="data-viewer">
+                <div id="dataContent" class="json-tree">
+                    Carregue um arquivo PKL para começar...
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <h3>Ações</h3>
+                <div class="action-form">
+                    <h4>Adicionar Item</h4>
+                    <div class="form-group">
+                        <label>Caminho (separado por vírgulas)</label>
+                        <input type="text" id="addPath" placeholder="ex: dados,usuarios,0">
+                    </div>
+                    <div class="form-group">
+                        <label>Chave/Índice</label>
+                        <input type="text" id="addKey" placeholder="nova_chave">
+                    </div>
+                    <div class="form-group">
+                        <label>Valor (JSON)</label>
+                        <textarea id="addValue" placeholder='{"exemplo": "valor"}'></textarea>
+                    </div>
+                    <button class="btn btn-primary" onclick="addItem()">Adicionar</button>
+                </div>
+
+                <div class="action-form">
+                    <h4>Mover Item</h4>
+                    <div class="form-group">
+                        <label>De (caminho)</label>
+                        <input type="text" id="moveFrom" placeholder="de: dados,item1">
+                    </div>
+                    <div class="form-group">
+                        <label>Para (caminho)</label>
+                        <input type="text" id="moveTo" placeholder="para: dados,novo_local">
+                    </div>
+                    <button class="btn btn-warning" onclick="moveItem()">Mover</button>
+                </div>
+
+                <div class="action-form">
+                    <h4>Informações</h4>
+                    <div class="form-group">
+                        <label>Tipo dos dados</label>
+                        <input type="text" id="dataType" readonly value="N/A">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            Clique nos elementos para ver opções de edição | Ctrl+Click para selecionar caminho
+        </footer>
+    </div>
+
+    <script>
+        let currentData = null;
+        let currentPath = [];
+        let selectedPath = [];
+
+        function showMessage(text, type) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.className = `message ${type}`;
+            msg.style.display = 'block';
+            setTimeout(() => {
+                msg.style.display = 'none';
+            }, 5000);
+        }
+
+        function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput.files.length) {
+                showMessage('Selecione um arquivo', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            document.getElementById('uploadBtn').disabled = true;
+            document.getElementById('uploadBtn').innerHTML = '<span class="loading"></span>';
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showMessage('Erro: ' + data.error, 'error');
+                } else {
+                    currentData = data.data;
+                    document.getElementById('fileInfo').textContent = `Arquivo: ${data.filename} | Tipo: ${data.type}`;
+                    document.getElementById('dataType').value = data.type;
+                    document.getElementById('saveBtn').disabled = false;
+                    document.getElementById('downloadBtn').disabled = false;
+                    renderData();
+                    showMessage('Arquivo carregado com sucesso!', 'success');
+                }
+            })
+            .catch(error => {
+                showMessage('Erro: ' + error, 'error');
+            })
+            .finally(() => {
+                document.getElementById('uploadBtn').disabled = false;
+                document.getElementById('uploadBtn').innerHTML = 'Carregar';
+            });
+        }
+
+        function saveFile() {
+            document.getElementById('saveBtn').disabled = true;
+            document.getElementById('saveBtn').innerHTML = '<span class="loading"></span>';
+
+            fetch('/save', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showMessage('Erro ao salvar: ' + data.error, 'error');
+                } else {
+                    showMessage('Arquivo salvo com sucesso!', 'success');
+                }
+            })
+            .catch(error => {
+                showMessage('Erro: ' + error, 'error');
+            })
+            .finally(() => {
+                document.getElementById('saveBtn').disabled = false;
+                document.getElementById('saveBtn').innerHTML = 'Salvar';
+            });
+        }
+
+        function downloadFile() {
+            window.location.href = '/download';
+        }
+
+        function addItem() {
+            const path = document.getElementById('addPath').value.split(',').filter(p => p.trim() !== '');
+            const key = document.getElementById('addKey').value;
+            let value = document.getElementById('addValue').value;
+
+            try {
+                value = JSON.parse(value);
+            } catch (e) {
+                // Mantém como string se não for JSON válido
+            }
+
+            fetch('/add_item', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    path: path,
+                    key: key,
+                    value: value
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showMessage('Erro: ' + data.error, 'error');
+                } else {
+                    currentData = data.data;
+                    renderData();
+                    showMessage('Item adicionado com sucesso!', 'success');
+                }
+            })
+            .catch(error => {
+                showMessage('Erro: ' + error, 'error');
+            });
+        }
+
+        function moveItem() {
+            const fromPath = document.getElementById('moveFrom').value.split(',').filter(p => p.trim() !== '');
+            const toPath = document.getElementById('moveTo').value.split(',').filter(p => p.trim() !== '');
+
+            fetch('/move_item', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    from_path: fromPath,
+                    to_path: toPath
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showMessage('Erro: ' + data.error, 'error');
+                } else {
+                    currentData = data.data;
+                    renderData();
+                    showMessage('Item movido com sucesso!', 'success');
+                }
+            })
+            .catch(error => {
+                showMessage('Erro: ' + error, 'error');
+            });
+        }
+
+        function updateItem(path, value) {
+            fetch('/update_item', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    path: path,
+                    value: value
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showMessage('Erro: ' + data.error, 'error');
+                } else {
+                    currentData = data.data;
+                    renderData();
+                    showMessage('Item atualizado com sucesso!', 'success');
+                }
+            })
+            .catch(error => {
+                showMessage('Erro: ' + error, 'error');
+            });
+        }
+
+        function deleteItem(path) {
+            if (!confirm('Tem certeza que deseja deletar este item?')) {
+                return;
+            }
+
+            fetch('/delete_item', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    path: path
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showMessage('Erro: ' + data.error, 'error');
+                } else {
+                    currentData = data.data;
+                    renderData();
+                    showMessage('Item deletado com sucesso!', 'success');
+                }
+            })
+            .catch(error => {
+                showMessage('Erro: ' + error, 'error');
+            });
+        }
+
+        function getValueType(value) {
+            if (value === null) return 'null';
+            if (typeof value === 'string') return 'string';
+            if (typeof value === 'number') return 'number';
+            if (typeof value === 'boolean') return 'boolean';
+            if (Array.isArray(value)) return 'array';
+            if (typeof value === 'object') return 'object';
+            return 'unknown';
+        }
+
+        function formatValue(value) {
+            const type = getValueType(value);
+            
+            if (type === 'string') {
+                return `<span class="json-value string">"${value}"</span>`;
+            } else if (type === 'number') {
+                return `<span class="json-value number">${value}</span>`;
+            } else if (type === 'boolean') {
+                return `<span class="json-value boolean">${value}</span>`;
+            } else if (type === 'null') {
+                return `<span class="json-value null">null</span>`;
+            } else if (type === 'array' || type === 'object') {
+                return `<span class="json-value">${type}</span>`;
+            }
+            return `<span class="json-value">${value}</span>`;
+        }
+
+        function renderNode(obj, path = [], key = null) {
+            if (obj === null || typeof obj !== 'object') {
+                if (key !== null) {
+                    return `
+                        <div class="json-node">
+                            <span class="json-key" onclick="selectPath('${path.join(',')}')">${key}:</span> 
+                            ${formatValue(obj)}
+                            <span class="node-controls">
+                                <button class="control-btn edit" onclick="editValue('${path.join(',')}')" title="Editar">✏️</button>
+                                <button class="control-btn delete" onclick="deleteItem(['${path.join("','")}'])" title="Deletar">🗑️</button>
+                            </span>
+                        </div>
+                    `;
+                }
+                return formatValue(obj);
+            }
+
+            let html = '';
+            if (key !== null) {
+                html += `<div class="json-node">
+                    <span class="json-key" onclick="toggleNode(this)">${key}:</span> 
+                    ${formatValue(obj)}
+                    <span class="node-controls">
+                        <button class="control-btn add" onclick="addToPath('${path.join(',')}')" title="Adicionar">➕</button>
+                        <button class="control-btn delete" onclick="deleteItem(['${path.join("','")}'])" title="Deletar">🗑️</button>
+                    </span>
+                `;
+            }
+
+            html += '<div class="json-node" style="margin-left: 20px;">';
+            
+            if (Array.isArray(obj)) {
+                obj.forEach((item, index) => {
+                    const newPath = [...path, index];
+                    html += renderNode(item, newPath, index);
+                });
+            } else {
+                Object.keys(obj).forEach(k => {
+                    const newPath = [...path, k];
+                    html += renderNode(obj[k], newPath, k);
+                });
+            }
+            
+            html += '</div>';
+            
+            if (key !== null) {
+                html += '</div>';
+            }
+            
+            return html;
+        }
+
+        function renderData() {
+            if (!currentData) return;
+            const content = document.getElementById('dataContent');
+            content.innerHTML = renderNode(currentData, []);
+        }
+
+        function toggleNode(element) {
+            const node = element.parentElement.nextElementSibling;
+            if (node) {
+                node.style.display = node.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        function selectPath(pathStr) {
+            selectedPath = pathStr.split(',').filter(p => p !== '');
+            document.getElementById('addPath').value = pathStr;
+            showMessage(`Caminho selecionado: ${pathStr}`, 'success');
+        }
+
+        function addToPath(pathStr) {
+            document.getElementById('addPath').value = pathStr;
+            showMessage(`Caminho definido para adição: ${pathStr}`, 'success');
+        }
+
+        function editValue(pathStr) {
+            const path = pathStr.split(',').filter(p => p !== '');
+            let value = currentData;
+            
+            for (const p of path) {
+                if (value[p] !== undefined) {
+                    value = value[p];
+                }
+            }
+
+            const newValue = prompt('Editar valor (formato JSON):', JSON.stringify(value));
+            if (newValue !== null) {
+                try {
+                    const parsed = JSON.parse(newValue);
+                    updateItem(path, parsed);
+                } catch (e) {
+                    showMessage('Formato JSON inválido', 'error');
+                }
+            }
+        }
+
+        // Atalhos de teclado
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                saveFile();
+            }
+        });
+    </script>
+</body>
+</html>
