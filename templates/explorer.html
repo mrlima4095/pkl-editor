@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Explorador de Dicionários</title>
+    <title>Explorador de Dicionários - Upload Web</title>
     <style>
         * {
             margin: 0;
@@ -42,39 +42,51 @@
             margin-bottom: 15px;
         }
 
-        .load-section {
+        .upload-section {
             display: flex;
-            gap: 10px;
+            gap: 15px;
             justify-content: center;
+            align-items: center;
             flex-wrap: wrap;
         }
 
-        .load-section input, .load-section select, .load-section button {
-            padding: 10px 15px;
-            border: none;
-            border-radius: 5px;
+        .upload-area {
+            background: rgba(255,255,255,0.2);
+            border: 2px dashed rgba(255,255,255,0.5);
+            border-radius: 10px;
+            padding: 15px 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            background: rgba(255,255,255,0.3);
+            border-color: white;
+        }
+
+        .upload-area input {
+            display: none;
+        }
+
+        .file-info {
+            background: rgba(255,255,255,0.2);
+            padding: 10px 20px;
+            border-radius: 10px;
             font-size: 14px;
         }
 
-        .load-section input {
-            flex: 1;
-            min-width: 200px;
-            background: rgba(255,255,255,0.2);
-            color: white;
-        }
-
-        .load-section input::placeholder {
-            color: rgba(255,255,255,0.7);
-        }
-
-        .load-section button {
+        .btn {
             background: white;
             color: #667eea;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
             cursor: pointer;
             transition: transform 0.2s;
+            font-weight: bold;
         }
 
-        .load-section button:hover {
+        .btn:hover {
             transform: translateY(-2px);
         }
 
@@ -107,6 +119,7 @@
             margin: 2px;
             cursor: pointer;
             font-size: 12px;
+            transition: background 0.2s;
         }
 
         .path-item:hover {
@@ -193,6 +206,7 @@
             font-family: monospace;
             font-size: 14px;
             margin: 10px 0;
+            resize: vertical;
         }
 
         .edit-form button {
@@ -224,6 +238,7 @@
             border-radius: 5px;
             cursor: pointer;
             font-size: 14px;
+            font-weight: bold;
         }
 
         .btn-primary {
@@ -236,8 +251,8 @@
             color: white;
         }
 
-        .btn-danger {
-            background: #dc3545;
+        .btn-info {
+            background: #17a2b8;
             color: white;
         }
 
@@ -246,6 +261,18 @@
             margin: 10px 0;
             border-radius: 5px;
             display: none;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
 
         .alert-success {
@@ -258,6 +285,12 @@
             background: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
         }
 
         .string-value {
@@ -276,19 +309,54 @@
             color: #6c757d;
             font-style: italic;
         }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .stats {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+        }
+
+        .stats h4 {
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+
+        .stats p {
+            font-size: 12px;
+            color: #666;
+            margin: 5px 0;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>📚 Explorador de Dicionários</h1>
-            <div class="load-section">
-                <input type="text" id="filepath" placeholder="Caminho do arquivo..." value="data.pkl">
-                <select id="filetype">
-                    <option value="pickle">Pickle (.pkl)</option>
-                    <option value="joblib">Joblib (.joblib)</option>
-                </select>
-                <button onclick="loadFile()">📂 Carregar</button>
+            <div class="upload-section">
+                <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                    <input type="file" id="fileInput" accept=".pkl,.joblib" onchange="uploadFile(this.files[0])">
+                    📁 Clique para selecionar arquivo
+                    <br>
+                    <small>Arquivos .pkl ou .joblib até 100MB</small>
+                </div>
+                <div id="fileInfo" class="file-info" style="display: none;">
+                    Nenhum arquivo carregado
+                </div>
             </div>
         </div>
 
@@ -296,22 +364,30 @@
             <div class="sidebar">
                 <h3>📍 Navegação</h3>
                 <div id="breadcrumb" class="path-navigation"></div>
-                <div id="info-panel">
-                    <h4>Informações</h4>
-                    <p id="file-info">Nenhum arquivo carregado</p>
+                <div id="stats" class="stats">
+                    <h4>📊 Estatísticas</h4>
+                    <div id="stats-content">
+                        <p>Nenhum dado carregado</p>
+                    </div>
                 </div>
             </div>
 
             <div class="content-area">
                 <div id="alert" class="alert"></div>
-                <div id="content"></div>
+                <div id="content">
+                    <div class="data-viewer" style="text-align: center; padding: 50px;">
+                        <h3>🎯 Bem-vindo ao Explorador de Dicionários!</h3>
+                        <p style="margin-top: 20px;">Clique na área acima para fazer upload de um arquivo .pkl ou .joblib</p>
+                        <p style="margin-top: 10px; color: #666;">Suporte a dicionários, listas, strings, números e objetos complexos</p>
+                    </div>
+                </div>
             </div>
         </div>
 
         <div class="save-section">
-            <button class="btn-primary" onclick="saveFile()">💾 Salvar</button>
-            <button class="btn-success" onclick="downloadFile()">⬇️ Download</button>
-            <button class="btn-danger" onclick="clearData()">🗑️ Limpar</button>
+            <button class="btn-primary" onclick="saveToServer()" id="saveBtn" disabled>💾 Salvar no Servidor</button>
+            <button class="btn-success" onclick="downloadFile()" id="downloadBtn" disabled>⬇️ Download</button>
+            <button class="btn-info" onclick="clearData()">🗑️ Limpar Dados</button>
         </div>
     </div>
 
@@ -319,6 +395,7 @@
         let currentData = null;
         let currentPath = [];
         let currentFilename = '';
+        let currentFiletype = '';
 
         function showAlert(message, type) {
             const alert = document.getElementById('alert');
@@ -330,15 +407,18 @@
             }, 3000);
         }
 
-        async function loadFile() {
-            const filepath = document.getElementById('filepath').value;
-            const filetype = document.getElementById('filetype').value;
+        async function uploadFile(file) {
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            showAlert('Carregando arquivo...', 'info');
 
             try {
-                const response = await fetch('/api/load', {
+                const response = await fetch('/api/upload', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({filepath, filetype})
+                    body: formData
                 });
                 const result = await response.json();
                 
@@ -346,12 +426,20 @@
                     currentData = result.data;
                     currentPath = [];
                     currentFilename = result.filename;
+                    currentFiletype = result.filetype;
+                    
                     renderContent();
                     updateBreadcrumb();
-                    document.getElementById('file-info').textContent = `Arquivo: ${currentFilename}`;
-                    showAlert('Arquivo carregado com sucesso!', 'success');
+                    updateStats();
+                    
+                    document.getElementById('fileInfo').style.display = 'block';
+                    document.getElementById('fileInfo').innerHTML = `📄 ${result.filename} (${result.filetype})`;
+                    document.getElementById('saveBtn').disabled = false;
+                    document.getElementById('downloadBtn').disabled = false;
+                    
+                    showAlert(result.message, 'success');
                 } else {
-                    showAlert('Erro ao carregar: ' + result.error, 'error');
+                    showAlert('Erro: ' + result.error, 'error');
                 }
             } catch (error) {
                 showAlert('Erro: ' + error.message, 'error');
@@ -372,6 +460,7 @@
                     currentData = result.data;
                     renderContent();
                     updateBreadcrumb();
+                    updateStats();
                 } else {
                     showAlert('Erro ao navegar: ' + result.error, 'error');
                 }
@@ -400,36 +489,17 @@
             }
         }
 
-        async function saveFile() {
-            const filepath = document.getElementById('filepath').value;
-            const filetype = document.getElementById('filetype').value;
-            
-            try {
-                const response = await fetch('/api/save', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({filepath, filetype})
-                });
-                const result = await response.json();
-                
-                if (result.success) {
-                    showAlert(`Arquivo salvo em: ${result.filepath}`, 'success');
-                } else {
-                    showAlert('Erro ao salvar: ' + result.error, 'error');
-                }
-            } catch (error) {
-                showAlert('Erro: ' + error.message, 'error');
-            }
-        }
-
         async function downloadFile() {
-            const filetype = document.getElementById('filetype').value;
+            if (!currentData) {
+                showAlert('Nenhum dado para baixar', 'error');
+                return;
+            }
             
             try {
                 const response = await fetch('/api/download', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({filetype})
+                    body: JSON.stringify({filetype: currentFiletype})
                 });
                 
                 if (response.ok) {
@@ -437,14 +507,44 @@
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `data.${filetype}`;
+                    a.download = currentFilename.replace(/\.(pkl|joblib)$/, '_edited.$1');
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
                     window.URL.revokeObjectURL(url);
                     showAlert('Download iniciado!', 'success');
                 } else {
-                    showAlert('Erro no download', 'error');
+                    const error = await response.json();
+                    showAlert('Erro: ' + error.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Erro: ' + error.message, 'error');
+            }
+        }
+
+        async function saveToServer() {
+            if (!currentData) {
+                showAlert('Nenhum dado para salvar', 'error');
+                return;
+            }
+            
+            const customName = prompt('Nome do arquivo (opcional):', currentFilename);
+            
+            try {
+                const response = await fetch('/api/save', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        filetype: currentFiletype,
+                        filename: customName
+                    })
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(result.message, 'success');
+                } else {
+                    showAlert('Erro: ' + result.error, 'error');
                 }
             } catch (error) {
                 showAlert('Erro: ' + error.message, 'error');
@@ -455,17 +555,26 @@
             currentData = null;
             currentPath = [];
             currentFilename = '';
+            currentFiletype = '';
             renderContent();
             updateBreadcrumb();
-            document.getElementById('file-info').textContent = 'Nenhum arquivo carregado';
-            showAlert('Dados limpos!', 'success');
+            updateStats();
+            document.getElementById('fileInfo').style.display = 'none';
+            document.getElementById('saveBtn').disabled = true;
+            document.getElementById('downloadBtn').disabled = true;
+            showAlert('Dados limpos com sucesso!', 'success');
         }
 
         function renderContent() {
             const container = document.getElementById('content');
             
             if (!currentData) {
-                container.innerHTML = '<div class="data-viewer"><p>Nenhum dado carregado. Carregue um arquivo para começar.</p></div>';
+                container.innerHTML = `
+                    <div class="data-viewer" style="text-align: center; padding: 50px;">
+                        <h3>📂 Nenhum dado carregado</h3>
+                        <p style="margin-top: 20px;">Faça upload de um arquivo .pkl ou .joblib para começar</p>
+                    </div>
+                `;
                 return;
             }
             
@@ -475,7 +584,7 @@
             let html = `
                 <div class="data-viewer">
                     <div class="data-header">
-                        <h3>Conteúdo</h3>
+                        <h3>📖 Conteúdo</h3>
                         <span class="data-type">${typeName}</span>
                     </div>
             `;
@@ -496,13 +605,12 @@
         function renderDict(data) {
             let html = '<div class="dict-container">';
             for (const [key, value] of Object.entries(data)) {
-                const valueType = getType(value);
                 const preview = getPreview(value);
                 const valueClass = getValueClass(value);
                 
                 html += `
-                    <div class="dict-item" onclick="navigateTo(['${key}'])">
-                        <div class="key">🔑 ${escapeHtml(key)}</div>
+                    <div class="dict-item" onclick="navigateTo(['${escapeHtml(String(key)).replace(/'/g, "\\'")}'])">
+                        <div class="key">🔑 ${escapeHtml(String(key))}</div>
                         <div class="value">
                             <span class="${valueClass}">${escapeHtml(preview)}</span>
                             <span style="font-size: 11px; color: #999;"> (${getTypeName(value)})</span>
@@ -538,9 +646,9 @@
             const valueClass = getValueClass(data);
             return `
                 <div class="primitive-value">
-                    <h4>Valor atual:</h4>
+                    <h4>📝 Valor atual:</h4>
                     <div class="value-preview">
-                        <span class="${valueClass}" style="font-size: 16px;">${escapeHtml(String(data))}</span>
+                        <span class="${valueClass}" style="font-size: 18px; font-weight: bold;">${escapeHtml(String(data))}</span>
                     </div>
                 </div>
             `;
@@ -550,7 +658,7 @@
             return `
                 <div class="edit-form">
                     <h4>✏️ Editar valor</h4>
-                    <textarea id="editValue" rows="5" placeholder="Digite o novo valor (JSON ou texto)...">${escapeHtml(String(currentValue))}</textarea>
+                    <textarea id="editValue" rows="5" placeholder="Digite o novo valor (JSON, número, texto ou booleano)...">${escapeHtml(String(currentValue))}</textarea>
                     <button onclick="saveCurrentValue()">💾 Salvar alteração</button>
                     <button onclick="cancelEdit()">❌ Cancelar</button>
                 </div>
@@ -567,7 +675,7 @@
         }
         
         function navigateTo(key) {
-            const newPath = [...currentPath, ...key];
+            const newPath = [...currentPath, key];
             browse(newPath);
         }
         
@@ -585,6 +693,57 @@
             breadcrumb.innerHTML = html;
         }
         
+        function updateStats() {
+            const statsContainer = document.getElementById('stats-content');
+            if (!currentData) {
+                statsContainer.innerHTML = '<p>Nenhum dado carregado</p>';
+                return;
+            }
+            
+            const totalItems = countItems(currentData);
+            const depth = calculateDepth(currentData);
+            
+            statsContainer.innerHTML = `
+                <p>📄 Arquivo: ${currentFilename || 'N/A'}</p>
+                <p>📦 Tipo: ${currentFiletype || 'N/A'}</p>
+                <p>🔢 Total de itens: ${totalItems}</p>
+                <p>📏 Profundidade máxima: ${depth}</p>
+                <p>📍 Caminho atual: ${currentPath.length > 0 ? currentPath.join(' → ') : 'Raiz'}</p>
+            `;
+        }
+        
+        function countItems(obj, level = 0) {
+            if (level > 10) return 0;
+            if (obj === null) return 1;
+            if (typeof obj === 'object') {
+                if (Array.isArray(obj)) {
+                    return obj.length + obj.reduce((sum, item) => sum + countItems(item, level + 1), 0);
+                }
+                if (typeof obj === 'object') {
+                    const keys = Object.keys(obj);
+                    return keys.length + keys.reduce((sum, key) => sum + countItems(obj[key], level + 1), 0);
+                }
+            }
+            return 1;
+        }
+        
+        function calculateDepth(obj, currentDepth = 0) {
+            if (currentDepth > 10) return currentDepth;
+            if (obj === null || typeof obj !== 'object') return currentDepth;
+            
+            let maxDepth = currentDepth;
+            if (Array.isArray(obj)) {
+                for (let item of obj) {
+                    maxDepth = Math.max(maxDepth, calculateDepth(item, currentDepth + 1));
+                }
+            } else {
+                for (let key in obj) {
+                    maxDepth = Math.max(maxDepth, calculateDepth(obj[key], currentDepth + 1));
+                }
+            }
+            return maxDepth;
+        }
+        
         function getType(obj) {
             if (obj === null) return 'null';
             if (Array.isArray(obj)) return 'list';
@@ -594,8 +753,10 @@
         function getTypeName(obj) {
             if (obj === null) return 'null';
             if (Array.isArray(obj)) return `Array[${obj.length}]`;
-            if (typeof obj === 'object') return `Object[${Object.keys(obj).length}]`;
-            if (typeof obj === 'string') return `String (${obj.length})`;
+            if (typeof obj === 'object') return `Objeto[${Object.keys(obj).length}]`;
+            if (typeof obj === 'string') return `Texto (${obj.length} caracteres)`;
+            if (typeof obj === 'number') return 'Número';
+            if (typeof obj === 'boolean') return 'Booleano';
             return typeof obj;
         }
         
@@ -603,12 +764,12 @@
             if (obj === null) return 'null';
             if (typeof obj === 'string') {
                 if (obj.length > 50) return obj.substring(0, 50) + '...';
-                return obj;
+                return obj || '(string vazia)';
             }
             if (typeof obj === 'number') return String(obj);
             if (typeof obj === 'boolean') return String(obj);
-            if (Array.isArray(obj)) return `[${obj.length} items]`;
-            if (typeof obj === 'object') return `{${Object.keys(obj).length} keys}`;
+            if (Array.isArray(obj)) return `[${obj.length} itens]`;
+            if (typeof obj === 'object') return `{${Object.keys(obj).length} chaves}`;
             return String(obj);
         }
         
