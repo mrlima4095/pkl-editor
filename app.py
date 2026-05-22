@@ -1,298 +1,202 @@
 # app.py
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, session
+import os
 import pickle
 import joblib
 import json
-import os
-import io
-import base64
-from datetime import datetime
-from werkzeug.utils import secure_filename
+from pathlib import Path
+import tempfile
+import shutil
 
 app = Flask(__name__)
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB max file size
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['TEMP_FOLDER'] = 'temp'
+app.secret_key = 'sua_chave_secreta_aqui_mude_para_algo_seguro'
 
-# Criar pastas necessárias
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-os.makedirs(app.config['TEMP_FOLDER'], exist_ok=True)
+# Diretório base para os arquivos
+BASE_DIR = Path(tempfile.mkdtemp())
+CURRENT_DIR = BASE_DIR
 
-class DictionaryExplorer:
-    def __init__(self):
-        self.data = {}
-        self.current_filename = None
-        self.current_filetype = None
-        
-    def load_from_bytes(self, file_bytes, filetype):
-        """Carregar dados a partir de bytes do arquivo"""
-        if filetype == 'pickle':
-            self.data = pickle.loads(file_bytes)
-        else:  # joblib
-            self.data = joblib.load(io.BytesIO(file_bytes))
-        return self.data
-    
-    def save_as_pickle_bytes(self):
-        """Salvar dados como bytes pickle"""
-        return pickle.dumps(self.data)
-    
-    def save_as_joblib_bytes(self):
-        """Salvar dados como bytes joblib"""
-        buffer = io.BytesIO()
-        joblib.dump(self.data, buffer)
-        return buffer.getvalue()
-    
-    def get_value_by_path(self, path):
-        current = self.data
-        for key in path:
-            if isinstance(current, dict):
-                current = current.get(key)
-            elif isinstance(current, list):
-                try:
-                    key = int(key) if isinstance(key, str) and key.isdigit() else key
-                    current = current[key]
-                except (ValueError, IndexError, TypeError):
-                    return None
-            else:
-                return None
-        return current
-    
-    def set_value_by_path(self, path, value):
-        if not path:
-            self.data = self.parse_value(value)
-            return True
-            
-        current = self.data
-        for key in path[:-1]:
-            if isinstance(current, dict):
-                if key not in current:
-                    current[key] = {}
-                current = current[key]
-            elif isinstance(current, list):
-                try:
-                    idx = int(key) if isinstance(key, str) and key.isdigit() else key
-                    if idx >= len(current):
-                        current.extend([None] * (idx - len(current) + 1))
-                    current = current[idx]
-                except (ValueError, IndexError):
-                    return False
-            else:
-                return False
-                
-        last_key = path[-1]
-        
-        if isinstance(current, dict):
-            current[last_key] = self.parse_value(value)
-        elif isinstance(current, list):
-            try:
-                idx = int(last_key) if isinstance(last_key, str) and last_key.isdigit() else last_key
-                if idx >= len(current):
-                    current.extend([None] * (idx - len(current) + 1))
-                current[idx] = self.parse_value(value)
-            except (ValueError, IndexError):
-                return False
+# Extensões suportadas
+SUPPORTED_EXTENSIONS = {'.pkl', '.pickle', '.joblib'}
+
+def load_pickle_file(filepath):
+    """Carrega arquivo pickle ou joblib"""
+    ext = filepath.suffix.lower()
+    try:
+        if ext in ['.pkl', '.pickle']:
+            with open(filepath, 'rb') as f:
+                return pickle.load(f)
+        elif ext == '.joblib':
+            return joblib.load(filepath)
+    except Exception as e:
+        return None
+
+def save_pickle_file(filepath, data, file_type='pickle'):
+    """Salva arquivo pickle ou joblib"""
+    try:
+        if file_type == 'joblib':
+            joblib.dump(data, filepath)
+        else:
+            with open(filepath, 'wb') as f:
+                pickle.dump(data, f)
         return True
-    
-    def parse_value(self, value_str):
-        # Tenta converter para JSON
-        try:
-            return json.loads(value_str)
-        except:
-            pass
-        
-        # Tenta converter para número
-        try:
-            if '.' in value_str:
-                return float(value_str)
-            return int(value_str)
-        except:
-            pass
-        
-        # Tenta converter para boolean
-        if value_str.lower() == 'true':
-            return True
-        if value_str.lower() == 'false':
-            return False
-        
-        # Mantém como string
-        return value_str
-
-explorer = DictionaryExplorer()
+    except Exception as e:
+        return False
 
 @app.route('/')
 def index():
     return render_template('explorer.html')
 
+@app.route('/api/list_files')
+def list_files():
+    """Lista arquivos no diretório atual"""
+    path = request.args.get('path', '')
+    current_path = BASE_DIR / path if path else BASE_DIR
+    
+    try:
+        items = []
+        for item in current_path.iterdir():
+            items.append({
+                'name': item.name,
+                'is_dir': item.is_dir(),
+                'size': item.stat().st_size if item.is_file() else 0,
+                'modified': item.stat().st_mtime,
+                'is_supported': item.suffix.lower() in SUPPORTED_EXTENSIONS if item.is_file() else False
+            })
+        
+        # Ordenar: diretórios primeiro, depois arquivos
+        items.sort(key=lambda x: (not x['is_dir'], x['name'].lower()))
+        
+        return jsonify({
+            'success': True,
+            'current_path': str(current_path.relative_to(BASE_DIR)) if current_path != BASE_DIR else '',
+            'items': items,
+            'parent_path': str(current_path.parent.relative_to(BASE_DIR)) if current_path != BASE_DIR else None
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/load_file')
+def load_file():
+    """Carrega e retorna o conteúdo de um arquivo pickle/joblib"""
+    filepath = request.args.get('path', '')
+    full_path = BASE_DIR / filepath
+    
+    if not full_path.exists() or full_path.is_dir():
+        return jsonify({'success': False, 'error': 'Arquivo não encontrado'})
+    
+    if full_path.suffix.lower() not in SUPPORTED_EXTENSIONS:
+        return jsonify({'success': False, 'error': 'Formato não suportado'})
+    
+    data = load_pickle_file(full_path)
+    if data is None:
+        return jsonify({'success': False, 'error': 'Erro ao carregar o arquivo'})
+    
+    # Converter dados para formato serializável em JSON
+    try:
+        # Salvar dados temporariamente para visualização
+        session['current_data'] = json.dumps(data, default=str)
+        session['current_file'] = filepath
+        session['current_type'] = 'joblib' if full_path.suffix == '.joblib' else 'pickle'
+        
+        return jsonify({
+            'success': True,
+            'data': data,
+            'data_str': str(data)[:1000]  # Preview
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Erro ao serializar: {str(e)}'})
+
+@app.route('/api/save_file', methods=['POST'])
+def save_file():
+    """Salva dados editados no arquivo"""
+    data = request.json
+    filepath = data.get('path', '')
+    new_data = data.get('data')
+    file_type = data.get('type', 'pickle')
+    
+    full_path = BASE_DIR / filepath
+    
+    if not full_path.exists():
+        return jsonify({'success': False, 'error': 'Arquivo não encontrado'})
+    
+    # Tentar converter o dado recebido
+    try:
+        # Se for string JSON, converter para objeto Python
+        if isinstance(new_data, str):
+            new_data = json.loads(new_data)
+        
+        if save_pickle_file(full_path, new_data, file_type):
+            return jsonify({'success': True, 'message': 'Arquivo salvo com sucesso!'})
+        else:
+            return jsonify({'success': False, 'error': 'Erro ao salvar arquivo'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Erro: {str(e)}'})
+
 @app.route('/api/upload', methods=['POST'])
 def upload_file():
-    """Upload do arquivo pickle ou joblib"""
+    """Upload de arquivo pickle/joblib"""
     if 'file' not in request.files:
         return jsonify({'success': False, 'error': 'Nenhum arquivo enviado'})
     
     file = request.files['file']
     if file.filename == '':
-        return jsonify({'success': False, 'error': 'Nenhum arquivo selecionado'})
+        return jsonify({'success': False, 'error': 'Nome de arquivo vazio'})
     
-    # Determinar o tipo do arquivo
-    filename = secure_filename(file.filename)
-    if filename.endswith('.pkl'):
-        filetype = 'pickle'
-    elif filename.endswith('.joblib'):
-        filetype = 'joblib'
-    else:
-        return jsonify({'success': False, 'error': 'Formato não suportado. Use .pkl ou .joblib'})
+    ext = Path(file.filename).suffix.lower()
+    if ext not in SUPPORTED_EXTENSIONS:
+        return jsonify({'success': False, 'error': f'Tipo não suportado. Use: {", ".join(SUPPORTED_EXTENSIONS)}'})
+    
+    # Salvar arquivo
+    save_path = BASE_DIR / file.filename
+    file.save(save_path)
+    
+    return jsonify({'success': True, 'message': 'Arquivo enviado com sucesso!'})
+
+@app.route('/api/create_dir', methods=['POST'])
+def create_directory():
+    """Cria novo diretório"""
+    data = request.json
+    dirname = data.get('name', '')
+    current_path = data.get('path', '')
+    
+    if not dirname:
+        return jsonify({'success': False, 'error': 'Nome inválido'})
+    
+    full_path = BASE_DIR / current_path / dirname
     
     try:
-        # Ler o arquivo
-        file_bytes = file.read()
-        
-        # Carregar os dados
-        data = explorer.load_from_bytes(file_bytes, filetype)
-        explorer.current_filename = filename
-        explorer.current_filetype = filetype
-        
-        return jsonify({
-            'success': True,
-            'data': convert_to_serializable(data),
-            'filename': filename,
-            'filetype': filetype,
-            'message': f'Arquivo {filename} carregado com sucesso!'
-        })
+        full_path.mkdir(exist_ok=False)
+        return jsonify({'success': True, 'message': 'Diretório criado com sucesso!'})
     except Exception as e:
-        return jsonify({'success': False, 'error': f'Erro ao carregar arquivo: {str(e)}'})
+        return jsonify({'success': False, 'error': str(e)})
 
-@app.route('/api/browse', methods=['POST'])
-def browse():
-    path = request.json.get('path', [])
-    data = explorer.get_value_by_path(path)
-    
-    if data is None:
-        return jsonify({'success': False, 'error': 'Caminho não encontrado'})
-    
-    return jsonify({
-        'success': True,
-        'data': convert_to_serializable(data),
-        'path': path,
-        'type': get_type_name(data)
-    })
+@app.route('/api/download/<path:filepath>')
+def download_file(filepath):
+    """Download de arquivo"""
+    full_path = BASE_DIR / filepath
+    if full_path.exists() and full_path.is_file():
+        return send_file(full_path, as_attachment=True)
+    return jsonify({'success': False, 'error': 'Arquivo não encontrado'})
 
-@app.route('/api/edit', methods=['POST'])
-def edit_value():
-    path = request.json.get('path', [])
-    value = request.json.get('value', '')
+@app.route('/api/delete', methods=['POST'])
+def delete_item():
+    """Deleta arquivo ou diretório"""
+    data = request.json
+    item_path = data.get('path', '')
     
-    if explorer.set_value_by_path(path, value):
-        return jsonify({'success': True, 'message': 'Valor atualizado com sucesso!'})
-    return jsonify({'success': False, 'error': 'Falha ao atualizar o valor'})
-
-@app.route('/api/download', methods=['POST'])
-def download_file():
-    """Download do arquivo atual"""
-    if explorer.data is None:
-        return jsonify({'success': False, 'error': 'Nenhum dado carregado'})
+    full_path = BASE_DIR / item_path
     
-    filetype = request.json.get('filetype', explorer.current_filetype or 'pickle')
+    if not full_path.exists():
+        return jsonify({'success': False, 'error': 'Item não encontrado'})
     
     try:
-        if filetype == 'pickle':
-            file_bytes = explorer.save_as_pickle_bytes()
-            extension = 'pkl'
-            mimetype = 'application/octet-stream'
+        if full_path.is_dir():
+            shutil.rmtree(full_path)
         else:
-            file_bytes = explorer.save_as_joblib_bytes()
-            extension = 'joblib'
-            mimetype = 'application/octet-stream'
-        
-        # Nome do arquivo
-        original_name = explorer.current_filename if explorer.current_filename else 'data'
-        name_without_ext = os.path.splitext(original_name)[0]
-        download_name = f'{name_without_ext}_edited.{extension}'
-        
-        return send_file(
-            io.BytesIO(file_bytes),
-            mimetype=mimetype,
-            as_attachment=True,
-            download_name=download_name
-        )
+            full_path.unlink()
+        return jsonify({'success': True, 'message': 'Item deletado com sucesso!'})
     except Exception as e:
-        return jsonify({'success': False, 'error': f'Erro ao baixar: {str(e)}'})
-
-@app.route('/api/save', methods=['POST'])
-def save_to_server():
-    """Salvar arquivo no servidor (opcional)"""
-    if explorer.data is None:
-        return jsonify({'success': False, 'error': 'Nenhum dado carregado'})
-    
-    filetype = request.json.get('filetype', explorer.current_filetype or 'pickle')
-    custom_name = request.json.get('filename', '')
-    
-    if custom_name:
-        filename = secure_filename(custom_name)
-        if not filename.endswith(f'.{filetype}'):
-            filename += f'.{filetype}'
-    else:
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'data_{timestamp}.{filetype}'
-    
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    
-    try:
-        if filetype == 'pickle':
-            with open(filepath, 'wb') as f:
-                f.write(explorer.save_as_pickle_bytes())
-        else:
-            with open(filepath, 'wb') as f:
-                f.write(explorer.save_as_joblib_bytes())
-        
-        return jsonify({
-            'success': True,
-            'message': f'Arquivo salvo como {filename}',
-            'filepath': filepath
-        })
-    except Exception as e:
-        return jsonify({'success': False, 'error': f'Erro ao salvar: {str(e)}'})
-
-def convert_to_serializable(obj, max_depth=5, current_depth=0):
-    """Converter objeto para formato serializável JSON"""
-    if current_depth > max_depth:
-        return f"... (max depth {max_depth})"
-    
-    if isinstance(obj, dict):
-        return {str(k): convert_to_serializable(v, max_depth, current_depth + 1) 
-                for k, v in list(obj.items())[:100]}  # Limitar a 100 itens
-    elif isinstance(obj, list):
-        return [convert_to_serializable(item, max_depth, current_depth + 1) 
-                for item in obj[:100]]  # Limitar a 100 itens
-    elif isinstance(obj, (int, float, str, bool, type(None))):
-        return obj
-    elif isinstance(obj, bytes):
-        return f"<bytes: {len(obj)} bytes>"
-    elif hasattr(obj, '__dict__'):
-        return str(obj)  # Para objetos customizados
-    else:
-        return str(obj)
-
-def get_type_name(obj):
-    if isinstance(obj, dict):
-        count = len(obj)
-        return f'dicionário ({count} item{"s" if count != 1 else ""})'
-    elif isinstance(obj, list):
-        count = len(obj)
-        return f'lista ({count} item{"s" if count != 1 else ""})'
-    elif isinstance(obj, str):
-        return f'texto ({len(obj)} caracteres)'
-    elif isinstance(obj, int):
-        return 'número inteiro'
-    elif isinstance(obj, float):
-        return 'número decimal'
-    elif isinstance(obj, bool):
-        return 'booleano'
-    elif obj is None:
-        return 'vazio (None)'
-    elif isinstance(obj, bytes):
-        return f'dados binários ({len(obj)} bytes)'
-    else:
-        return type(obj).__name__
+        return jsonify({'success': False, 'error': str(e)})
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
