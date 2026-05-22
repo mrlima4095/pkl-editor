@@ -1,10 +1,10 @@
-<!-- templates/explorer.html -->
+<!-- templates/explorer.html - Updated with rename modal -->
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Explorador de Arquivos Pickle/Joblib</title>
+    <title>Windows Explorer - Pickle/Joblib Navigator</title>
     <style>
         * {
             margin: 0;
@@ -13,181 +13,363 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            transition: background-color 0.3s, color 0.3s;
-        }
-
-        /* Modo Claro (padrão) */
-        body.light-mode {
-            background-color: #f0f0f0;
-            color: #333;
-        }
-
-        body.light-mode .container {
-            background-color: white;
-        }
-
-        body.light-mode .file-item:hover {
-            background-color: #e0e0e0;
-        }
-
-        body.light-mode .modal-content {
-            background-color: white;
-        }
-
-        /* Modo Escuro */
-        body.dark-mode {
-            background-color: #1e1e1e;
-            color: #e0e0e0;
-        }
-
-        body.dark-mode .container {
-            background-color: #2d2d2d;
-            border-color: #404040;
-        }
-
-        body.dark-mode .file-item:hover {
-            background-color: #3a3a3a;
-        }
-
-        body.dark-mode .modal-content {
-            background-color: #2d2d2d;
-            color: #e0e0e0;
-        }
-
-        body.dark-mode input, body.dark-mode textarea, body.dark-mode select {
-            background-color: #3a3a3a;
-            color: #e0e0e0;
-            border-color: #505050;
-        }
-
-        body.dark-mode button {
-            background-color: #0d7377;
-            color: white;
-        }
-
-        body.dark-mode button:hover {
-            background-color: #0a5c60;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        .toolbar {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        button {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            background-color: #007bff;
-            color: white;
+            font-family: 'Segoe UI', 'Segoe UI Historic', 'Segoe UI Variable', system-ui, -apple-system, 'Roboto', sans-serif;
+            overflow: hidden;
+            height: 100vh;
             transition: background-color 0.2s;
         }
 
-        button:hover {
-            background-color: #0056b3;
+        /* Light Mode */
+        body.light-mode {
+            background-color: #f0f2f5;
+            color: #1f1f1f;
         }
 
-        button.danger {
-            background-color: #dc3545;
+        body.light-mode .explorer-window {
+            background-color: #ffffff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
-        button.danger:hover {
-            background-color: #c82333;
+        body.light-mode .ribbon-tab {
+            background: linear-gradient(to bottom, #f9f9f9, #f0f0f0);
+            border-bottom: 1px solid #d0d0d0;
         }
 
-        button.success {
-            background-color: #28a745;
+        body.light-mode .ribbon-button:hover {
+            background-color: #e5f3ff;
+            border: 1px solid #cce4ff;
         }
 
-        button.success:hover {
-            background-color: #218838;
+        body.light-mode .nav-pane {
+            background-color: #fafafa;
+            border-right: 1px solid #d0d0d0;
         }
 
-        .theme-toggle {
-            margin-left: auto;
+        body.light-mode .file-list-header {
+            background-color: #f5f5f5;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        body.light-mode .file-item:hover {
+            background-color: #e5f3ff;
+        }
+
+        body.light-mode .file-item.selected {
+            background-color: #cce4ff;
+        }
+
+        body.light-mode .address-bar {
+            background-color: #ffffff;
+            border: 1px solid #d0d0d0;
+        }
+
+        /* Dark Mode */
+        body.dark-mode {
+            background-color: #202020;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .explorer-window {
+            background-color: #2d2d2d;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        body.dark-mode .ribbon-tab {
+            background: linear-gradient(to bottom, #383838, #2d2d2d);
+            border-bottom: 1px solid #404040;
+        }
+
+        body.dark-mode .ribbon-button:hover {
+            background-color: #404040;
+            border: 1px solid #505050;
+        }
+
+        body.dark-mode .nav-pane {
+            background-color: #252525;
+            border-right: 1px solid #404040;
+        }
+
+        body.dark-mode .nav-item:hover {
+            background-color: #383838;
+        }
+
+        body.dark-mode .file-list-header {
+            background-color: #252525;
+            border-bottom: 1px solid #404040;
+            color: #c0c0c0;
+        }
+
+        body.dark-mode .file-item:hover {
+            background-color: #383838;
+        }
+
+        body.dark-mode .file-item.selected {
+            background-color: #404040;
+        }
+
+        body.dark-mode .address-bar {
+            background-color: #2d2d2d;
+            border: 1px solid #404040;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode input, body.dark-mode select, body.dark-mode textarea {
+            background-color: #3a3a3a;
+            color: #e0e0e0;
+            border: 1px solid #505050;
+        }
+
+        /* Layout */
+        .explorer-window {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 100%;
+            overflow: hidden;
+        }
+
+        /* Ribbon */
+        .ribbon {
+            flex-shrink: 0;
+        }
+
+        .ribbon-tab {
+            display: flex;
+            gap: 4px;
+            padding: 6px 12px;
+            border-bottom: 1px solid;
+        }
+
+        .ribbon-group {
+            display: flex;
+            gap: 4px;
+            padding: 0 8px;
+            border-right: 1px solid #d0d0d0;
+        }
+
+        body.dark-mode .ribbon-group {
+            border-right-color: #404040;
+        }
+
+        .ribbon-group:last-child {
+            border-right: none;
+        }
+
+        .ribbon-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 6px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            border: 1px solid transparent;
+            transition: all 0.1s;
+            background: transparent;
+            color: inherit;
+            font-size: 12px;
+        }
+
+        .ribbon-button-icon {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        .ribbon-button-label {
+            font-size: 11px;
+        }
+
+        /* Address Bar */
+        .address-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 16px;
+            flex-shrink: 0;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 4px;
+        }
+
+        .nav-button {
+            background: transparent;
+            border: 1px solid transparent;
+            padding: 6px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: all 0.1s;
+        }
+
+        .nav-button:hover:not(:disabled) {
+            background-color: rgba(0,0,0,0.05);
+            border-color: #d0d0d0;
+        }
+
+        .nav-button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .address-bar {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .address-icon {
+            margin-right: 8px;
+            font-size: 16px;
+        }
+
+        /* Main Content */
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Navigation Pane */
+        .nav-pane {
+            width: 260px;
+            flex-shrink: 0;
+            overflow-y: auto;
+            padding: 16px 0;
+        }
+
+        .nav-section {
+            margin-bottom: 16px;
+        }
+
+        .nav-section-title {
+            padding: 8px 16px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #808080;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 16px;
+            cursor: pointer;
+            transition: background-color 0.1s;
+            border-radius: 4px;
+            margin: 0 8px;
+        }
+
+        .nav-item.active {
+            background-color: #cce4ff;
+        }
+
+        body.dark-mode .nav-item.active {
+            background-color: #404040;
+        }
+
+        .nav-item-icon {
+            font-size: 18px;
+            width: 24px;
+        }
+
+        .nav-item-label {
+            font-size: 13px;
+        }
+
+        /* Files Area */
+        .files-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .file-list-header {
+            display: grid;
+            grid-template-columns: 40px 3fr 1fr 1.5fr 1fr 100px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            gap: 8px;
+            flex-shrink: 0;
         }
 
         .file-list {
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            margin-top: 20px;
-        }
-
-        .file-header {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr 80px;
-            padding: 10px;
-            background-color: #f8f9fa;
-            font-weight: bold;
-            border-bottom: 2px solid #ddd;
-        }
-
-        body.dark-mode .file-header {
-            background-color: #3a3a3a;
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
 
         .file-item {
             display: grid;
-            grid-template-columns: 2fr 1fr 1fr 80px;
-            padding: 10px;
+            grid-template-columns: 40px 3fr 1fr 1.5fr 1fr 100px;
+            padding: 8px 12px;
+            gap: 8px;
+            align-items: center;
             cursor: pointer;
-            transition: background-color 0.2s;
-            border-bottom: 1px solid #eee;
+            transition: background-color 0.1s;
+            font-size: 13px;
         }
 
-        body.dark-mode .file-item {
-            border-bottom-color: #404040;
+        .file-item-icon {
+            font-size: 20px;
+            text-align: center;
         }
 
-        .file-name {
+        .file-item-name {
             display: flex;
             align-items: center;
             gap: 8px;
+            font-weight: 500;
         }
 
-        .file-actions {
+        .file-item-actions {
             display: flex;
-            gap: 5px;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.1s;
         }
 
-        .file-actions button {
+        .file-item:hover .file-item-actions {
+            opacity: 1;
+        }
+
+        .action-btn {
+            background: transparent;
+            border: none;
             padding: 4px 8px;
-            font-size: 12px;
-        }
-
-        .breadcrumb {
-            margin-bottom: 15px;
-            padding: 10px;
-            background-color: #f8f9fa;
-            border-radius: 4px;
-        }
-
-        body.dark-mode .breadcrumb {
-            background-color: #3a3a3a;
-        }
-
-        .breadcrumb span {
             cursor: pointer;
-            color: #007bff;
+            border-radius: 4px;
+            font-size: 12px;
+            transition: all 0.1s;
         }
 
-        body.dark-mode .breadcrumb span {
-            color: #0d7377;
+        .action-btn:hover {
+            background-color: rgba(0,0,0,0.1);
         }
 
+        /* Status Bar */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 16px;
+            font-size: 11px;
+            border-top: 1px solid #d0d0d0;
+            flex-shrink: 0;
+            background-color: inherit;
+        }
+
+        body.dark-mode .status-bar {
+            border-top-color: #404040;
+        }
+
+        /* Modals */
         .modal {
             display: none;
             position: fixed;
@@ -197,17 +379,20 @@
             width: 100%;
             height: 100%;
             background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
         }
 
         .modal-content {
-            background-color: white;
+            position: relative;
+            background-color: inherit;
             margin: 5% auto;
-            padding: 20px;
+            padding: 24px;
             border-radius: 8px;
-            width: 80%;
-            max-width: 800px;
+            width: 90%;
+            max-width: 500px;
             max-height: 80%;
             overflow-y: auto;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
         }
 
         .modal-header {
@@ -215,116 +400,949 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #d0d0d0;
         }
 
         .close {
             cursor: pointer;
-            font-size: 24px;
+            font-size: 28px;
             font-weight: bold;
+            line-height: 20px;
         }
 
-        .data-editor {
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            font-size: 13px;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
             width: 100%;
-            min-height: 300px;
-            font-family: monospace;
-            padding: 10px;
-            margin: 10px 0;
-        }
-
-        .status {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 10px 20px;
+            padding: 8px 12px;
             border-radius: 4px;
-            display: none;
-            z-index: 1001;
+            font-size: 13px;
         }
 
-        .status.success {
-            background-color: #28a745;
+        .form-group textarea {
+            min-height: 200px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.1s;
+        }
+
+        .btn-primary {
+            background-color: #0078d4;
             color: white;
         }
 
-        .status.error {
-            background-color: #dc3545;
-            color: white;
+        .btn-primary:hover {
+            background-color: #106ebe;
+        }
+
+        .btn-secondary {
+            background-color: #e0e0e0;
+            color: #1f1f1f;
+        }
+
+        body.dark-mode .btn-secondary {
+            background-color: #404040;
+            color: #e0e0e0;
         }
 
         .upload-area {
-            border: 2px dashed #ddd;
-            padding: 20px;
+            border: 2px dashed #d0d0d0;
+            border-radius: 8px;
+            padding: 40px;
             text-align: center;
-            margin-bottom: 20px;
-            border-radius: 4px;
+            margin: 20px;
             cursor: pointer;
+            transition: all 0.2s;
         }
 
         .upload-area:hover {
-            border-color: #007bff;
+            border-color: #0078d4;
+            background-color: rgba(0,120,212,0.05);
         }
 
-        @media (max-width: 768px) {
-            .file-header, .file-item {
-                grid-template-columns: 2fr 1fr 0.5fr 80px;
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            border-radius: 4px;
+            z-index: 1100;
+            display: none;
+            animation: slideIn 0.3s ease-out;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast-success {
+            background-color: #107c10;
+            color: white;
+        }
+
+        .toast-error {
+            background-color: #d13438;
+            color: white;
+        }
+
+        .toast-info {
+            background-color: #0078d4;
+            color: white;
+        }
+
+        .info-text {
+            font-size: 12px;
+            color: #808080;
+            margin-top: 4px;
+        }
+
+        .warning-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 16px;
+            color: #856404;
+        }
+
+        body.dark-mode .warning-box {
+            background-color: #2d1b00;
+            color: #ffc107;
+            border-color: #ffc107;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 14px;
+            height: 14px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 7px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        body.dark-mode ::-webkit-scrollbar-thumb {
+            background: #5a5a5a;
+        }
+
+        @media (max-width: 1024px) {
+            .nav-pane {
+                display: none;
             }
             
-            .file-size, .file-modified {
+            .file-list-header, .file-item {
+                grid-template-columns: 40px 2fr 1fr 100px;
+            }
+            
+            .file-list-header div:nth-child(4),
+            .file-list-header div:nth-child(5),
+            .file-item .file-size,
+            .file-item .file-modified {
                 display: none;
             }
         }
     </style>
 </head>
 <body class="light-mode">
-    <div class="container">
-        <div class="toolbar">
-            <button onclick="createDirectory()">Nova Pasta</button>
-            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-                📁 Upload de Pickle/Joblib
-                <input type="file" id="fileInput" accept=".pkl,.pickle,.joblib" style="display: none" onchange="uploadFile(this)">
+    <div class="explorer-window">
+        <!-- Ribbon Toolbar -->
+        <div class="ribbon">
+            <div class="ribbon-tab">
+                <div class="ribbon-group">
+                    <button class="ribbon-button" onclick="showUploadModal()">
+                        <div class="ribbon-button-icon">📂</div>
+                        <div class="ribbon-button-label">Load</div>
+                    </button>
+                    <button class="ribbon-button" onclick="downloadPickle()" id="downloadBtn" disabled>
+                        <div class="ribbon-button-icon">💾</div>
+                        <div class="ribbon-button-label">Download</div>
+                    </button>
+                    <button class="ribbon-button" onclick="showSaveAsDialog()" id="saveAsBtn" disabled>
+                        <div class="ribbon-button-icon">📄</div>
+                        <div class="ribbon-button-label">Save As</div>
+                    </button>
+                </div>
+                <div class="ribbon-group">
+                    <button class="ribbon-button" onclick="showCreateDialog()" id="newItemBtn" disabled>
+                        <div class="ribbon-button-icon">📁</div>
+                        <div class="ribbon-button-label">New Item</div>
+                    </button>
+                    <button class="ribbon-button" onclick="deleteSelected()" id="deleteBtn" disabled>
+                        <div class="ribbon-button-icon">🗑️</div>
+                        <div class="ribbon-button-label">Delete</div>
+                    </button>
+                    <button class="ribbon-button" onclick="renameSelected()" id="renameBtn" disabled>
+                        <div class="ribbon-button-icon">✏️</div>
+                        <div class="ribbon-button-label">Rename</div>
+                    </button>
+                </div>
+                <div class="ribbon-group">
+                    <button class="ribbon-button" onclick="toggleTheme()">
+                        <div class="ribbon-button-icon">🌓</div>
+                        <div class="ribbon-button-label">Theme</div>
+                    </button>
+                    <button class="ribbon-button" onclick="refreshCurrentPath()">
+                        <div class="ribbon-button-icon">🔄</div>
+                        <div class="ribbon-button-label">Refresh</div>
+                    </button>
+                </div>
             </div>
-            <button onclick="refreshFiles()">Atualizar</button>
-            <button class="theme-toggle" onclick="toggleTheme()">🌓 Modo Escuro/Claro</button>
         </div>
 
-        <div class="breadcrumb" id="breadcrumb"></div>
-
-        <div class="file-list">
-            <div class="file-header">
-                <div>Nome</div>
-                <div>Tamanho</div>
-                <div>Modificado</div>
-                <div>Ações</div>
+        <!-- Address Bar -->
+        <div class="address-container">
+            <div class="nav-buttons">
+                <button class="nav-button" onclick="navigateBack()" id="backBtn" disabled>←</button>
+                <button class="nav-button" onclick="navigateForward()" id="forwardBtn" disabled>→</button>
+                <button class="nav-button" onclick="navigateUp()" id="upBtn" disabled>↑</button>
             </div>
-            <div id="fileList"></div>
+            <div class="address-bar">
+                <span class="address-icon">📂</span>
+                <span class="address-path" id="addressPath">My Pickle</span>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Navigation Pane -->
+            <div class="nav-pane">
+                <div class="nav-section">
+                    <div class="nav-section-title">Quick Access</div>
+                    <div class="nav-item" onclick="browse('')">
+                        <span class="nav-item-icon">🏠</span>
+                        <span class="nav-item-label">Root</span>
+                    </div>
+                    <div class="nav-item" id="parentNav" style="display: none;" onclick="navigateUp()">
+                        <span class="nav-item-icon">⬆️</span>
+                        <span class="nav-item-label">Go Up</span>
+                    </div>
+                </div>
+                <div class="nav-section" id="quickAccessSection">
+                    <div class="nav-section-title">Current Structure</div>
+                    <div id="quickAccess"></div>
+                </div>
+            </div>
+
+            <!-- Files Area -->
+            <div class="files-area">
+                <div class="file-list-header">
+                    <div></div>
+                    <div>Name</div>
+                    <div>Size</div>
+                    <div>Type</div>
+                    <div>Preview</div>
+                    <div></div>
+                </div>
+                <div class="file-list" id="fileList"></div>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div id="statusLeft">Ready</div>
+            <div id="statusRight">0 items</div>
         </div>
     </div>
 
-    <div id="editorModal" class="modal">
+    <!-- Upload Modal -->
+    <div id="uploadModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Editor de Dados</h2>
-                <span class="close" onclick="closeEditor()">&times;</span>
+                <h3>Load Pickle/Joblib File</h3>
+                <span class="close" onclick="closeUploadModal()">&times;</span>
             </div>
-            <textarea id="dataEditor" class="data-editor" placeholder="Dados em formato JSON..."></textarea>
-            <div class="toolbar">
-                <button onclick="saveData()" class="success">💾 Salvar</button>
-                <button onclick="closeEditor()">Cancelar</button>
+            <div class="modal-body">
+                <div class="upload-area" onclick="document.getElementById('uploadFile').click()">
+                    📂 Click to select a file
+                    <br><small>Supports .pkl, .pickle, .joblib</small>
+                    <input type="file" id="uploadFile" accept=".pkl,.pickle,.joblib" style="display: none" onchange="loadPickleFile(this)">
+                </div>
             </div>
         </div>
     </div>
 
-    <div id="status" class="status"></div>
+    <!-- Rename Modal -->
+    <div id="renameModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>✏️ Rename Item</h3>
+                <span class="close" onclick="closeRenameModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="renameInfo" class="form-group">
+                    <label>Current Name:</label>
+                    <input type="text" id="currentName" readonly disabled style="background-color: #f0f0f0; cursor: not-allowed;">
+                </div>
+                <div class="form-group">
+                    <label>New Name:</label>
+                    <input type="text" id="newName" placeholder="Enter new name" autocomplete="off">
+                </div>
+                <div class="info-text">
+                    💡 You can use letters, numbers, and underscores<br>
+                    💡 For dictionary keys, numbers will be treated as integers
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="confirmRename()">Rename</button>
+                <button class="btn btn-secondary" onclick="closeRenameModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>✏️ Edit Value</h3>
+                <span class="close" onclick="closeEditModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="editInfo"></div>
+                <div id="complexWarning" style="display: none;" class="warning-box">
+                    ⚠️ This is a complex object and cannot be edited directly
+                </div>
+                <div class="form-group">
+                    <label>Value:</label>
+                    <textarea id="valueEditor" rows="10" placeholder="Enter value..."></textarea>
+                    <div class="info-text">
+                        💡 For tuples: (1, 2, 3) or 1,2,3<br>
+                        💡 For sets: {1, 2, 3} or 1,2,3<br>
+                        💡 For lists: [1, 2, 3] or 1,2,3<br>
+                        💡 For dicts: {"key": "value"}
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Type:</label>
+                    <select id="valueType">
+                        <option value="string">String</option>
+                        <option value="int">Integer</option>
+                        <option value="float">Float</option>
+                        <option value="bool">Boolean</option>
+                        <option value="tuple">Tuple ()</option>
+                        <option value="set">Set {}</option>
+                        <option value="list">List []</option>
+                        <option value="dict">Dictionary {}</option>
+                        <option value="none">None</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="saveValue()">Save</button>
+                <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Item Modal -->
+    <div id="createModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📝 Create New Item</h3>
+                <span class="close" onclick="closeCreateModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Name:</label>
+                    <input type="text" id="newItemName" placeholder="Enter item name">
+                </div>
+                <div class="form-group">
+                    <label>Item Type:</label>
+                    <select id="newItemType" onchange="toggleFolderOptions()">
+                        <option value="file">File (value)</option>
+                        <option value="folder">Folder (container)</option>
+                        <option value="tuple">Tuple ()</option>
+                        <option value="set">Set {}</option>
+                    </select>
+                </div>
+                <div id="folderOptions" style="display: none;">
+                    <div class="form-group">
+                        <label>Container Type:</label>
+                        <select id="folderType">
+                            <option value="dict">Dictionary {}</option>
+                            <option value="list">List []</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="fileOptions">
+                    <div class="form-group">
+                        <label>Value Type:</label>
+                        <select id="valueTypeNew">
+                            <option value="string">String</option>
+                            <option value="int">Integer</option>
+                            <option value="float">Float</option>
+                            <option value="bool">Boolean</option>
+                            <option value="tuple">Tuple ()</option>
+                            <option value="set">Set {}</option>
+                            <option value="list">List []</option>
+                            <option value="dict">Dictionary {}</option>
+                            <option value="none">None</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="createItem()">Create</button>
+                <button class="btn btn-secondary" onclick="closeCreateModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save As Modal -->
+    <div id="saveAsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>💿 Save As</h3>
+                <span class="close" onclick="closeSaveAsModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Filename:</label>
+                    <input type="text" id="saveAsFilename" placeholder="example.pkl">
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="saveAs()">Save</button>
+                <button class="btn btn-secondary" onclick="closeSaveAsModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
 
     <script>
         let currentPath = '';
-        let currentEditFile = null;
-        let currentFileType = null;
+        let currentItems = [];
+        let selectedItem = null;
+        let history = [];
+        let historyIndex = -1;
+        let currentEditPath = '';
+        let currentRenamePath = '';
+        let currentRenameOldName = '';
 
-        // Inicializar
+        // Initialize
         document.addEventListener('DOMContentLoaded', () => {
-            loadFiles();
+            showUploadModal();
         });
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast toast-${type}`;
+            toast.style.display = 'block';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+
+        function showUploadModal() {
+            document.getElementById('uploadModal').style.display = 'block';
+        }
+
+        function closeUploadModal() {
+            document.getElementById('uploadModal').style.display = 'none';
+        }
+
+        async function loadPickleFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            showToast('Loading file...', 'info');
+            
+            try {
+                const response = await fetch('/api/load_pickle', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    closeUploadModal();
+                    enableButtons(true);
+                    await browse('');
+                    showToast(`File "${data.filename}" loaded successfully!`, 'success');
+                    updateStatusLeft(`File: ${data.filename} - Root type: ${data.root_type}`);
+                } else {
+                    showToast(data.error, 'error');
+                }
+            } catch (error) {
+                showToast('Error loading file', 'error');
+            }
+            
+            input.value = '';
+        }
+
+        function enableButtons(enabled) {
+            const btns = ['downloadBtn', 'saveAsBtn', 'newItemBtn', 'deleteBtn', 'renameBtn'];
+            btns.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) btn.disabled = !enabled;
+            });
+        }
+
+        async function browse(path, addToHistory = true) {
+            try {
+                const response = await fetch(`/api/browse?path=${encodeURIComponent(path)}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    if (data.is_value) {
+                        showEditDialog(path, data.value, data.type, data.is_complex || false);
+                    } else {
+                        currentItems = data.items;
+                        currentPath = path;
+                        renderFileList(data.items);
+                        updateAddressBar(path);
+                        updateQuickAccess(path);
+                        updateStatusRight(data.items.length);
+                        
+                        if (addToHistory && (historyIndex === -1 || history[historyIndex] !== path)) {
+                            history = history.slice(0, historyIndex + 1);
+                            history.push(path);
+                            historyIndex++;
+                            updateNavButtons();
+                        }
+                        
+                        updateParentNav(path);
+                    }
+                } else {
+                    showToast(data.error, 'error');
+                }
+            } catch (error) {
+                showToast('Error browsing', 'error');
+            }
+        }
+
+        function renderFileList(items) {
+            const fileListDiv = document.getElementById('fileList');
+            
+            if (!items || items.length === 0) {
+                fileListDiv.innerHTML = '<div style="padding: 40px; text-align: center; color: #808080;">📭 This folder is empty</div>';
+                return;
+            }
+            
+            fileListDiv.innerHTML = items.map(item => `
+                <div class="file-item" onclick="selectItem('${item.path}', event)" ondblclick="openItem('${item.path}', ${item.is_container})">
+                    <div class="file-item-icon">${item.icon}</div>
+                    <div class="file-item-name">
+                        <span>${escapeHtml(item.name)}</span>
+                    </div>
+                    <div>${item.is_container ? (item.size + ' items') : formatSize(item.size)}</div>
+                    <div>${item.type}</div>
+                    <div>${item.value_preview ? escapeHtml(item.value_preview) : '-'}</div>
+                    <div class="file-item-actions">
+                        ${!item.is_container && !item.is_complex ? `<button class="action-btn" onclick="editItem('${item.path}'); event.stopPropagation()" title="Edit">✏️</button>` : ''}
+                        <button class="action-btn" onclick="showRenameDialog('${item.path}', '${escapeHtml(item.name)}'); event.stopPropagation()" title="Rename">📝</button>
+                        <button class="action-btn" onclick="deleteItem('${item.path}'); event.stopPropagation()" title="Delete">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function selectItem(path, event) {
+            const items = document.querySelectorAll('.file-item');
+            items.forEach(item => item.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
+            selectedItem = path;
+            updateStatusLeft(`Selected: ${path}`);
+        }
+
+        function openItem(path, isContainer) {
+            if (isContainer) {
+                browse(path);
+            } else {
+                editItem(path);
+            }
+        }
+
+        function showRenameDialog(path, currentName) {
+            currentRenamePath = path;
+            currentRenameOldName = currentName;
+            document.getElementById('currentName').value = currentName;
+            document.getElementById('newName').value = currentName;
+            document.getElementById('renameModal').style.display = 'block';
+            document.getElementById('newName').focus();
+            document.getElementById('newName').select();
+        }
+
+        async function confirmRename() {
+            const newName = document.getElementById('newName').value.trim();
+            
+            if (!newName) {
+                showToast('Name cannot be empty', 'error');
+                return;
+            }
+            
+            if (newName === currentRenameOldName) {
+                closeRenameModal();
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/rename_item', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        path: currentRenamePath,
+                        new_name: newName,
+                        type: 'key'
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    showToast('Item renamed successfully!', 'success');
+                    closeRenameModal();
+                    refreshCurrentPath();
+                } else {
+                    showToast(data.error, 'error');
+                }
+            } catch (error) {
+                showToast('Error renaming', 'error');
+            }
+        }
+
+        function renameSelected() {
+            if (selectedItem) {
+                const item = currentItems.find(i => i.path === selectedItem);
+                if (item) {
+                    showRenameDialog(selectedItem, item.name);
+                }
+            } else {
+                showToast('Select an item first', 'info');
+            }
+        }
+
+        async function editItem(path) {
+            try {
+                const response = await fetch(`/api/get_item?path=${encodeURIComponent(path)}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentEditPath = path;
+                    showEditDialog(path, data.value, data.type, !data.is_editable);
+                } else {
+                    showToast(data.error, 'error');
+                }
+            } catch (error) {
+                showToast('Error loading item', 'error');
+            }
+        }
+
+        function showEditDialog(path, value, type, isComplex) {
+            const complexWarning = document.getElementById('complexWarning');
+            const editor = document.getElementById('valueEditor');
+            const typeSelect = document.getElementById('valueType');
+            
+            document.getElementById('editInfo').innerHTML = `
+                <p><strong>Path:</strong> ${path}</p>
+                <p><strong>Current Type:</strong> ${type}</p>
+            `;
+            
+            if (isComplex) {
+                complexWarning.style.display = 'block';
+                editor.disabled = true;
+                editor.value = value;
+                typeSelect.disabled = true;
+                showToast('Complex object cannot be edited directly', 'info');
+            } else {
+                complexWarning.style.display = 'none';
+                editor.disabled = false;
+                typeSelect.disabled = false;
+                editor.value = value;
+                
+                // Set type selector based on current type
+                if (type === 'tuple') typeSelect.value = 'tuple';
+                else if (type === 'set') typeSelect.value = 'set';
+                else if (type === 'list') typeSelect.value = 'list';
+                else if (type === 'dict') typeSelect.value = 'dict';
+                else if (type === 'int') typeSelect.value = 'int';
+                else if (type === 'float') typeSelect.value = 'float';
+                else if (type === 'bool') typeSelect.value = 'bool';
+                else if (type === 'NoneType') typeSelect.value = 'none';
+                else typeSelect.value = 'string';
+            }
+            
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        async function saveValue() {
+            const newValue = document.getElementById('valueEditor').value;
+            const valueType = document.getElementById('valueType').value;
+            
+            try {
+                const response = await fetch('/api/update_value', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        path: currentEditPath,
+                        value: newValue,
+                        type: valueType
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    showToast('Value updated successfully!', 'success');
+                    closeEditModal();
+                    refreshCurrentPath();
+                } else {
+                    showToast(data.error, 'error');
+                }
+            } catch (error) {
+                showToast('Error saving value', 'error');
+            }
+        }
+
+        async function deleteItem(path) {
+            if (!confirm('Are you sure you want to delete this item?')) return;
+            
+            try {
+                const response = await fetch('/api/delete_item', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({path: path})
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    showToast('Item deleted successfully!', 'success');
+                    selectedItem = null;
+                    refreshCurrentPath();
+                } else {
+                    showToast(data.error, 'error');
+                }
+            } catch (error) {
+                showToast('Error deleting', 'error');
+            }
+        }
+
+        function deleteSelected() {
+            if (selectedItem) {
+                deleteItem(selectedItem);
+            } else {
+                showToast('Select an item first', 'info');
+            }
+        }
+
+        function showCreateDialog() {
+            document.getElementById('createModal').style.display = 'block';
+            document.getElementById('newItemName').value = '';
+            toggleFolderOptions();
+        }
+
+        function toggleFolderOptions() {
+            const itemType = document.getElementById('newItemType').value;
+            document.getElementById('folderOptions').style.display = itemType === 'folder' ? 'block' : 'none';
+            document.getElementById('fileOptions').style.display = itemType === 'file' ? 'block' : 'none';
+        }
+
+        async function createItem() {
+            const name = document.getElementById('newItemName').value;
+            const itemType = document.getElementById('newItemType').value;
+            const folderType = document.getElementById('folderType')?.value;
+            const valueType = document.getElementById('valueTypeNew').value;
+            
+            if (!name) {
+                showToast('Enter a name for the item', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/create_item', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        path: currentPath,
+                        name: name,
+                        item_type: itemType,
+                        folder_type: folderType,
+                        value_type: valueType
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    showToast('Item created successfully!', 'success');
+                    closeCreateModal();
+                    refreshCurrentPath();
+                } else {
+                    showToast(data.error, 'error');
+                }
+            } catch (error) {
+                showToast('Error creating item', 'error');
+            }
+        }
+
+        async function downloadPickle() {
+            window.location.href = '/api/download_pickle';
+            showToast('Download started', 'success');
+        }
+
+        function showSaveAsDialog() {
+            document.getElementById('saveAsModal').style.display = 'block';
+            document.getElementById('saveAsFilename').value = '';
+        }
+
+        async function saveAs() {
+            const filename = document.getElementById('saveAsFilename').value;
+            if (!filename) {
+                showToast('Enter a filename', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/save_as', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({filename: filename})
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    closeSaveAsModal();
+                } else {
+                    showToast(data.error, 'error');
+                }
+            } catch (error) {
+                showToast('Error saving', 'error');
+            }
+        }
+
+        function refreshCurrentPath() {
+            browse(currentPath, false);
+        }
+
+        function navigateBack() {
+            if (historyIndex > 0) {
+                historyIndex--;
+                browse(history[historyIndex], false);
+            }
+        }
+
+        function navigateForward() {
+            if (historyIndex < history.length - 1) {
+                historyIndex++;
+                browse(history[historyIndex], false);
+            }
+        }
+
+        function navigateUp() {
+            if (currentPath) {
+                const parentPath = currentPath.split('/').slice(0, -1).join('/');
+                browse(parentPath);
+            }
+        }
+
+        function updateNavButtons() {
+            document.getElementById('backBtn').disabled = historyIndex <= 0;
+            document.getElementById('forwardBtn').disabled = historyIndex >= history.length - 1;
+            document.getElementById('upBtn').disabled = !currentPath;
+        }
+
+        function updateParentNav(path) {
+            const parentNav = document.getElementById('parentNav');
+            parentNav.style.display = path ? 'flex' : 'none';
+        }
+
+        function updateAddressBar(path) {
+            const addressSpan = document.getElementById('addressPath');
+            if (!path) {
+                addressSpan.textContent = 'Root';
+            } else {
+                addressSpan.textContent = path;
+            }
+        }
+
+        function updateQuickAccess(path) {
+            const quickAccess = document.getElementById('quickAccess');
+            if (path) {
+                const parts = path.split('/');
+                let html = '';
+                let accumulated = '';
+                parts.forEach((part, index) => {
+                    accumulated += (index === 0 ? part : '/' + part);
+                    html += `<div class="nav-item" onclick="browse('${accumulated}')">
+                        <span class="nav-item-icon">📁</span>
+                        <span class="nav-item-label">${escapeHtml(part)}</span>
+                    </div>`;
+                });
+                quickAccess.innerHTML = html;
+            } else {
+                quickAccess.innerHTML = '<div class="nav-item" style="opacity:0.6">📁 Root</div>';
+            }
+        }
+
+        function updateStatusLeft(message) {
+            document.getElementById('statusLeft').textContent = message;
+        }
+
+        function updateStatusRight(count) {
+            document.getElementById('statusRight').textContent = `${count} ${count === 1 ? 'item' : 'items'}`;
+        }
+
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
 
         function toggleTheme() {
             const body = document.body;
@@ -332,266 +1350,50 @@
                 body.classList.remove('light-mode');
                 body.classList.add('dark-mode');
                 localStorage.setItem('theme', 'dark');
+                showToast('Dark mode activated', 'info');
             } else {
                 body.classList.remove('dark-mode');
                 body.classList.add('light-mode');
                 localStorage.setItem('theme', 'light');
+                showToast('Light mode activated', 'info');
             }
         }
 
-        // Carregar tema salvo
+        // Load saved theme
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme === 'dark') {
             document.body.classList.add('dark-mode');
             document.body.classList.remove('light-mode');
         }
 
-        async function loadFiles(path = '') {
-            try {
-                const response = await fetch(`/api/list_files?path=${encodeURIComponent(path)}`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    currentPath = data.current_path;
-                    renderFileList(data.items);
-                    renderBreadcrumb(data.current_path, data.parent_path);
-                } else {
-                    showStatus('Erro ao carregar arquivos', 'error');
-                }
-            } catch (error) {
-                showStatus('Erro de conexão', 'error');
+        function closeRenameModal() { 
+            document.getElementById('renameModal').style.display = 'none';
+            currentRenamePath = '';
+            currentRenameOldName = '';
+        }
+        
+        function closeEditModal() { 
+            document.getElementById('editModal').style.display = 'none';
+        }
+        
+        function closeCreateModal() { 
+            document.getElementById('createModal').style.display = 'none';
+        }
+        
+        function closeSaveAsModal() { 
+            document.getElementById('saveAsModal').style.display = 'none';
+        }
+
+        // Enter key support for rename modal
+        document.getElementById('newName')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                confirmRename();
             }
-        }
+        });
 
-        function renderFileList(items) {
-            const fileListDiv = document.getElementById('fileList');
-            
-            if (items.length === 0) {
-                fileListDiv.innerHTML = '<div style="padding: 20px; text-align: center;">Nenhum arquivo encontrado</div>';
-                return;
-            }
-            
-            fileListDiv.innerHTML = items.map(item => `
-                <div class="file-item">
-                    <div class="file-name" onclick="navigateTo('${item.name}', ${item.is_dir})">
-                        ${item.is_dir ? '📁' : (item.is_supported ? '📄' : '❓')} ${item.name}
-                    </div>
-                    <div class="file-size">${item.is_dir ? '-' : formatFileSize(item.size)}</div>
-                    <div class="file-modified">${new Date(item.modified * 1000).toLocaleString()}</div>
-                    <div class="file-actions">
-                        ${!item.is_dir && item.is_supported ? `<button onclick="editFile('${item.name}')" class="success">✏️ Editar</button>` : ''}
-                        ${!item.is_dir ? `<button onclick="downloadFile('${item.name}')">📥 Download</button>` : ''}
-                        <button onclick="deleteItem('${item.name}')" class="danger">🗑️</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function renderBreadcrumb(currentPath, parentPath) {
-            const breadcrumbDiv = document.getElementById('breadcrumb');
-            let html = '<span onclick="navigateToRoot()">🏠 Raiz</span>';
-            
-            if (currentPath) {
-                const parts = currentPath.split(/[\\/]/);
-                let accumulatedPath = '';
-                parts.forEach((part, index) => {
-                    accumulatedPath += (index === 0 ? part : '/' + part);
-                    html += ` / <span onclick="navigateToPath('${accumulatedPath}')">${part}</span>`;
-                });
-            }
-            
-            breadcrumbDiv.innerHTML = html;
-        }
-
-        function navigateTo(name, isDir) {
-            if (isDir) {
-                const newPath = currentPath ? `${currentPath}/${name}` : name;
-                loadFiles(newPath);
-            } else {
-                // Arquivo normal - apenas selecionar
-                showStatus('Clique em Editar para visualizar o conteúdo', 'success');
-            }
-        }
-
-        function navigateToRoot() {
-            loadFiles('');
-        }
-
-        function navigateToPath(path) {
-            loadFiles(path);
-        }
-
-        async function editFile(filename) {
-            const filepath = currentPath ? `${currentPath}/${filename}` : filename;
-            currentEditFile = filepath;
-            
-            try {
-                const response = await fetch(`/api/load_file?path=${encodeURIComponent(filepath)}`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Mostrar dados no editor
-                    const editor = document.getElementById('dataEditor');
-                    editor.value = JSON.stringify(data.data, null, 2);
-                    document.getElementById('editorModal').style.display = 'block';
-                } else {
-                    showStatus(data.error, 'error');
-                }
-            } catch (error) {
-                showStatus('Erro ao carregar arquivo', 'error');
-            }
-        }
-
-        async function saveData() {
-            const editor = document.getElementById('dataEditor');
-            let newData;
-            
-            try {
-                newData = JSON.parse(editor.value);
-            } catch (e) {
-                showStatus('JSON inválido! Verifique a sintaxe.', 'error');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/save_file', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        path: currentEditFile,
-                        data: newData,
-                        type: 'pickle'
-                    })
-                });
-                
-                const data = await response.json();
-                if (data.success) {
-                    showStatus('Arquivo salvo com sucesso!', 'success');
-                    closeEditor();
-                    refreshFiles();
-                } else {
-                    showStatus(data.error, 'error');
-                }
-            } catch (error) {
-                showStatus('Erro ao salvar arquivo', 'error');
-            }
-        }
-
-        async function uploadFile(input) {
-            const file = input.files[0];
-            if (!file) return;
-            
-            const formData = new FormData();
-            formData.append('file', file);
-            
-            try {
-                const response = await fetch('/api/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const data = await response.json();
-                if (data.success) {
-                    showStatus('Upload realizado com sucesso!', 'success');
-                    refreshFiles();
-                } else {
-                    showStatus(data.error, 'error');
-                }
-            } catch (error) {
-                showStatus('Erro no upload', 'error');
-            }
-            
-            input.value = '';
-        }
-
-        async function downloadFile(filename) {
-            const filepath = currentPath ? `${currentPath}/${filename}` : filename;
-            window.location.href = `/api/download/${encodeURIComponent(filepath)}`;
-        }
-
-        async function deleteItem(filename) {
-            if (!confirm(`Tem certeza que deseja deletar "${filename}"?`)) return;
-            
-            const filepath = currentPath ? `${currentPath}/${filename}` : filename;
-            
-            try {
-                const response = await fetch('/api/delete', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({path: filepath})
-                });
-                
-                const data = await response.json();
-                if (data.success) {
-                    showStatus('Item deletado com sucesso!', 'success');
-                    refreshFiles();
-                } else {
-                    showStatus(data.error, 'error');
-                }
-            } catch (error) {
-                showStatus('Erro ao deletar', 'error');
-            }
-        }
-
-        async function createDirectory() {
-            const dirname = prompt('Nome da nova pasta:');
-            if (!dirname) return;
-            
-            try {
-                const response = await fetch('/api/create_dir', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        name: dirname,
-                        path: currentPath
-                    })
-                });
-                
-                const data = await response.json();
-                if (data.success) {
-                    showStatus('Pasta criada com sucesso!', 'success');
-                    refreshFiles();
-                } else {
-                    showStatus(data.error, 'error');
-                }
-            } catch (error) {
-                showStatus('Erro ao criar pasta', 'error');
-            }
-        }
-
-        function refreshFiles() {
-            loadFiles(currentPath);
-        }
-
-        function closeEditor() {
-            document.getElementById('editorModal').style.display = 'none';
-            currentEditFile = null;
-        }
-
-        function formatFileSize(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-
-        function showStatus(message, type) {
-            const statusDiv = document.getElementById('status');
-            statusDiv.textContent = message;
-            statusDiv.className = `status ${type}`;
-            statusDiv.style.display = 'block';
-            
-            setTimeout(() => {
-                statusDiv.style.display = 'none';
-            }, 3000);
-        }
-
-        // Fechar modal ao clicar fora
         window.onclick = function(event) {
-            const modal = document.getElementById('editorModal');
-            if (event.target === modal) {
-                closeEditor();
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
             }
         }
     </script>
